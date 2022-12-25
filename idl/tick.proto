@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package dat;
+
+message TickData {
+	// 交易日
+	string	TradingDay = 1;
+	// 合约代码
+	string	InstrumentID = 2;
+	// 交易所代码
+	string	ExchangeID = 3;
+	// 合约在交易所的代码
+	string	ExchangeInstID = 4;
+	// 最新价
+	float	LastPrice = 5;
+	// 上次结算价
+	float	PreSettlementPrice = 6;
+	// 昨收盘
+	float	PreClosePrice = 7;
+	// 昨持仓量
+	float	PreOpenInterest = 8;
+	// 今开盘
+	float	OpenPrice = 9;
+	// 最高价
+	float	HighestPrice = 10;
+	// 最低价
+	float	LowestPrice = 11;
+	// 数量
+	int32	Volume = 12;
+	// 成交金额
+	double	Turnover = 13;
+	// 持仓量
+	double	OpenInterest = 14;
+	// 今收盘
+	float	ClosePrice = 15;
+	// 本次结算价
+	float	SettlementPrice = 16;
+	// 涨停板价
+	float	UpperLimitPrice = 17;
+	// 跌停板价
+	float	LowerLimitPrice = 18;
+	// 昨虚实度
+	double	PreDelta = 19;
+	// 今虚实度
+	double	CurrDelta = 20;
+	// 最后修改时间
+	string	UpdateTime = 21;
+	// 最后修改毫秒
+	int32	UpdateMillisec = 22;
+	// 申买价一
+	float	BidPrice1 = 23;
+	// 申买量一
+	int32	BidVolume1 = 24;
+	// 申卖价一
+	float	AskPrice1 = 25;
+	// 申卖量一
+	int32	AskVolume1 = 26;
+	// 申买价二
+	float	BidPrice2 = 27;
+	// 申买量二
+	int32	BidVolume2 = 28;
+	// 申卖价二
+	float	AskPrice2 = 29;
+	// 申卖量二
+	int32	AskVolume2 = 30;
+	// 申买价三
+	float	BidPrice3 = 31;
+	// 申买量三
+	int32	BidVolume3 = 32;
+	// 申卖价三
+	float	AskPrice3 = 33;
+	// 申卖量三
+	int32	AskVolume3 = 34;
+	// 申买价四
+	float	BidPrice4 = 35;
+	// 申买量四
+	int32	BidVolume4 = 36;
+	// 申卖价四
+	float	AskPrice4 = 37;
+	// 申卖量四
+	int32	AskVolume4 = 38;
+	// 申买价五
+	float	BidPrice5 = 39;
+	// 申买量五
+	int32	BidVolume5 = 40;
+	// 申卖价五
+	float	AskPrice5 = 42;
+	// 申卖量五
+	int32	AskVolume5 = 43;
+	// 当日均价
+	float	AveragePrice = 44;
+	// 业务日期
+	string	ActionDay = 45;
+};

@@ -1,0 +1,59 @@
+SET(THIRDPARTY_PREFIX_DIR "D:/Program Files (x86)")
+
+# add link directory
+LINK_DIRECTORIES(
+    lib
+    ${THIRDPARTY_PREFIX_DIR}/glog/lib
+    ${THIRDPARTY_PREFIX_DIR}/zlib/lib
+    ${THIRDPARTY_PREFIX_DIR}/gflags/lib
+)
+
+MESSAGE("CMAKE_BUILD_TYPE:" ${CMAKE_BUILD_TYPE})
+
+IF (CMAKE_BUILD_TYPE STREQUAL Debug)
+    LINK_LIBRARIES(glogd zlibd)
+ELSE()
+    LINK_LIBRARIES(glog zlib)
+ENDIF()
+
+LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/lib/)
+
+LINK_LIBRARIES(
+    sqlite
+    thostmduserapi_se
+    thosttraderapi_se
+)
+
+# include current dir
+INCLUDE_DIRECTORIES(
+    .
+    ..
+    ./include
+    ${THIRDPARTY_PREFIX_DIR}/glog/include
+    ${THIRDPARTY_PREFIX_DIR}/zlib/include
+    ${THIRDPARTY_PREFIX_DIR}/gflags/include
+)
+
+# set object src
+SET(OBJ_SRCS main.cpp)
+
+# add local source files
+AUX_SOURCE_DIRECTORY(util UTIL_SRCS)
+AUX_SOURCE_DIRECTORY(data DATA_SRCS)
+AUX_SOURCE_DIRECTORY(quote QUOTE_SRCS)
+AUX_SOURCE_DIRECTORY(trade TRADE_SRCS)
+AUX_SOURCE_DIRECTORY(manager MGR_SRCS)
+AUX_SOURCE_DIRECTORY(backtest BT_SRCS)
+AUX_SOURCE_DIRECTORY(strategy STG_SRCS)
+AUX_SOURCE_DIRECTORY(broker BROKER_SRCS)
+AUX_SOURCE_DIRECTORY(sqlite SQLITE_SRCS)
+AUX_SOURCE_DIRECTORY(database DB_SRCS)
+AUX_SOURCE_DIRECTORY(datetime DATETIME_SRCS)
+
+# generate target
+ADD_EXECUTABLE(
+    ${PROJECT_NAME} ${OBJ_SRCS} ${UTIL_SRCS} ${QUOTE_SRCS}
+    ${TRADE_SRCS} ${BROKER_SRCS} ${STG_SRCS} ${DATA_SRCS}
+    ${MGR_SRCS} ${BT_SRCS} ${DATETIME_SRCS} ${SQLITE_SRCS}
+    ${DB_SRCS}
+)
