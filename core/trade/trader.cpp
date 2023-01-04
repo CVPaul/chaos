@@ -7,6 +7,7 @@
 #include "trade/trader.h"
 #include "data/structs.h"
 #include "quote/marketdata.h"
+#include "manager/data.h"
 #include "manager/instrument.h"
 #include "database/tables.h"
 
@@ -24,16 +25,22 @@ ctp::CTdSpi::CTdSpi(CThostFtdcTraderApi* pUserApi, ctp::BrokerInfo* pBroker)
 	// trade worker
 	_worker = std::thread([this]() {
 		auto sqlite = mgr::DBManager::Get()->GetSqlite("simnow");
-	auto rsp = sqlite->execute(
-		"SELECT id, instrument,exchange_id,(origin_vol - traded_vol) AS vol,"
-		"direction,status,update_time WHERE vol > 0");
-	for (int i = 0; i < rsp->data.size(); i++) {
+	auto rsp = std::unique_ptr<SqliteRsp>(sqlite->execute(
+		"SELECT id,instrument,exchange_id,(origin_vol - traded_vol) AS vol,"
+		"direction,status,update_time FROME orders WHERE vol > 0"));
+	for (int i = 0; i < rsp->data.size(); i++) { // re insert the failed orders
 		if (rsp->data[i][5] == "1") {
+			std::string instrument = rsp->data[i][1];
+			double price = mgr::DataManager::Get()->get(instrument)->price;
 			this->ReqOrderInsert(
-				rsp->data[i][1], true, rsp->data[i][3], rsp->data[i][4]) {
+				rsp->data[i][1], true, price,
+				std::atoi(rsp->data[i][3].c_str()),
+				static_cast<ord::Direction>(std::atoi(rsp->data[i][4].c_str())));
+			std::unique_ptr<SqliteRsp>(
+				sqlite->execute("UPATE orders SET status = %d WHERE id = %s",
+					10086, rsp->data[i][1].c_str()));
 		}
 	}
-
 	});
 }
 

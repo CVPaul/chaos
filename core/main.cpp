@@ -8,6 +8,7 @@
 #include "util/logging.h"
 #include "trade/trader.h"
 #include "broker/front.h"
+#include "manager/data.h"
 #include "quote/marketdata.h"
 #include "manager/strategy.h"
 
@@ -83,6 +84,7 @@ int trade(){
 					// set false
 					is_new_session = false;
 				}
+				mgr::DataManager::Get()->reset(); // 清除之前的数据
 				util::Logger::update_rotation_time(); // rolling log file
 				std::this_thread::sleep_for(std::chrono::seconds(5));
 			}

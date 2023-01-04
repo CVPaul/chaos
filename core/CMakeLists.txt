@@ -56,4 +56,4 @@ ADD_EXECUTABLE(
     ${TRADE_SRCS} ${BROKER_SRCS} ${STG_SRCS} ${DATA_SRCS}
     ${MGR_SRCS} ${BT_SRCS} ${DATETIME_SRCS} ${SQLITE_SRCS}
     ${DB_SRCS}
-)
+ "manager/data.h" "manager/data.cpp")

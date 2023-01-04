@@ -7,6 +7,7 @@
 #include "util/common.h"
 #include "util/logging.h"
 #include "data/structs.h"
+#include "manager/data.h"
 #include "quote/marketdata.h"
 #include "manager/strategy.h"
 #include "manager/instrument.h"
@@ -132,8 +133,8 @@ void ctp::CMdSpi::OnRspSubMarketData(
 ///深度行情通知
 void ctp::CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData){
 	if (pDepthMarketData){
-		dat::TickData td(pDepthMarketData);
-		mgr::StrategyManager::Get()->update(td);
+		dat::TickData* ptd = mgr::DataManager::Get()->update(pDepthMarketData);
+		mgr::StrategyManager::Get()->update(*ptd);
 		if (need_download){
 			log_info << "PUBLIC_MARKET_DATA|instrument_id=" << pDepthMarketData->InstrumentID
 				<< "|ActionDay=" << pDepthMarketData->ActionDay
