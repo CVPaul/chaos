@@ -22,14 +22,20 @@ public:
 	static InstrumentManager* Get();
 	~InstrumentManager();
 	inline void append(CThostFtdcInstrumentField* pInstrument) {
-		// 目前还不需要加锁
+		// no lock needed now
 		instruments[pInstrument->InstrumentID] = pInstrument;
+		instruments[to_symbol(pInstrument->InstrumentID)] = pInstrument;
 	}
 	inline CThostFtdcInstrumentField* get(const std::string& instrument_id) {
-		// 目前还不需要加锁
+		// no lock needed now
 		auto iter = instruments.find(instrument_id);
 		if (iter == instruments.end()) {
-			return nullptr;
+			auto symbol = to_symbol(instrument_id);
+			auto it2 = instruments.find(symbol);
+			if (it2 == instruments.end()){
+				return nullptr;
+			}
+			return it2->second;
 		}
 		return iter->second;
 	}

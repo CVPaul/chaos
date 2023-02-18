@@ -388,13 +388,13 @@ std::string ctp::CTdSpi::ReqOrderInsert(
 	float price, int volume, ord::Direction direction){
 	// put to data base first
 	// 条件单由于是服务器代发，所以frontid和sessoinid都是0
-	auto sqlite = mgr::DBManager::Get()->GetSqlite("simnow");
+	auto sqlite = mgr::DBManager::Get()->GetSqlite(p_broker->investor_id);
 	char buffer[1024];
 	std::string exchange_id = mgr::InstrumentManager::Get()->get_exhcnage_id(instrument_id);
 	sprintf_s(
 		buffer,
 		"INSERT INTO %s(instrument, exchange_id, direction, "
-		"price, origin_vol) VAUES('%s','%s',%d,%f,%d)",
+		"price, origin_vol) VALUES('%s','%s',%d,%f,%d)",
 		ORDER_TABLE_NAME, instrument_id.c_str(),
 		exchange_id.c_str(), direction, price, volume);
 	auto rsp = sqlite->execute(buffer);
@@ -779,7 +779,7 @@ std::string ctp::CTdSpi::ReqOrderPreInsert(
 	const std::string& instrument_id, bool close_yd_pos,
 	float price, int volume, ord::Direction direction){
 	// function body
-	auto sqlite = mgr::DBManager::Get()->GetSqlite("simnow");
+	auto sqlite = mgr::DBManager::Get()->GetSqlite(p_broker->investor_id);
 	char buffer[1024];
 	std::string exchange_id = mgr::InstrumentManager::Get()->get_exhcnage_id(instrument_id);
 	sprintf_s(
@@ -827,7 +827,7 @@ std::string ctp::CTdSpi::ReqOrderPreInsert(
 ///报单操作请求
 void ctp::CTdSpi::ReqOrderAction(const std::string& order_ref){
 	// function body
-	auto sqlite = mgr::DBManager::Get()->GetSqlite("simnow");
+	auto sqlite = mgr::DBManager::Get()->GetSqlite(p_broker->investor_id);
 	auto rsp = sqlite->execute(
 		"SELECT instrument, exchange_id FROM %s WHERE id=%s",
 		ORDER_TABLE_NAME, order_ref.c_str());
@@ -1062,7 +1062,7 @@ void ctp::CTdSpi::OnRspQryInstrument(
 		// 	<< ctp::InstrumentManager::Get()->to_symbol(pInstrument->InstrumentID);
 		mgr::InstrumentManager::Get()->append(new CThostFtdcInstrumentField(*pInstrument));
 	}
-	if (pRspInfo){
+	if (pRspInfo && pRspInfo->ErrorID){
 		log_error << "OnRspQryInstrument Failed, code:" << pRspInfo->ErrorID
 			<< ", msg:" << pRspInfo->ErrorMsg;
 	} 
@@ -1422,7 +1422,7 @@ void ctp::CTdSpi::OnRtnOrder(CThostFtdcOrderField *pOrder){
 		else if (pOrder->OrderStatus == THOST_FTDC_OST_Touched){///已触发
 			status = "8:touched";
 		}
-		auto sqlite = mgr::DBManager::Get()->GetSqlite("simnow");
+		auto sqlite = mgr::DBManager::Get()->GetSqlite(p_broker->investor_id);
 		auto rsp = sqlite->execute(
 			"UPDATE order SET traded_vol=%d, status=%c WHERE id=%s",
 			pOrder->VolumeTraded, status[0], pOrder->OrderRef);

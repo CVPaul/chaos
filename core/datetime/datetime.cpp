@@ -2,13 +2,14 @@
 
 namespace dt {
 	DateTime::DateTime(
-		int year, int month, int day,
-		int hour, int second, int millisecond) {
+		int year, int month, int day, int hour,
+		int minute, int second, int millisecond) {
 		// function body
 		this->day = day;
 		this->hour = hour;
 		this->year = year;
 		this->month = month;
+		this->minute = minute;
 		this->second = second;
 		this->millisecond = millisecond;
 	}
@@ -19,6 +20,7 @@ namespace dt {
 		this->hour = ptm->tm_hour;
 		this->year = ptm->tm_year;
 		this->month = ptm->tm_mon;
+		this->minute = ptm->tm_min;
 		this->second = ptm->tm_sec;
 		this->millisecond = 0;
 	}
@@ -35,6 +37,7 @@ namespace dt {
 		ttm.tm_mon = month;
 		ttm.tm_mday = day;
 		ttm.tm_hour = hour;
+		ttm.tm_min = minute;
 		ttm.tm_sec = second;
 		return ttm;
 	}

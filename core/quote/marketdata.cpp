@@ -11,6 +11,7 @@
 #include "quote/marketdata.h"
 #include "manager/strategy.h"
 #include "manager/instrument.h"
+#include "datetime/datetime.h"
 
 HANDLE xinhao = CreateEvent(NULL, false, false, NULL);
 
@@ -133,6 +134,10 @@ void ctp::CMdSpi::OnRspSubMarketData(
 ///深度行情通知
 void ctp::CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData){
 	if (pDepthMarketData){
+		if(pDepthMarketData->UpdateTime[0] == '\0'){
+			log_warning << "Invalid data got update_time is '\0', instrument_id:" << pDepthMarketData->InstrumentID;
+			strcpy_s(pDepthMarketData->UpdateTime, dt::now().to_string("%H:%M:%S").c_str());
+		}
 		dat::TickData* ptd = mgr::DataManager::Get()->update(pDepthMarketData);
 		mgr::StrategyManager::Get()->update(*ptd);
 		if (need_download){

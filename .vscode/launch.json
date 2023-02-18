@@ -8,7 +8,8 @@
             "name": "C++",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/chaos.exe",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/x64/Debug/chaos.exe",
             "symbolSearchPath": "C:\\Symbols;C:\\SymbolDir2",
             "externalConsole": true,
             "logging": {
@@ -16,6 +17,7 @@
                 "trace": true
             },
             // "visualizerFile": "${workspaceFolder}/my.natvis",
+            "cwd": "${workspaceRoot}"
         },
         { 
             "name": "Node", 
