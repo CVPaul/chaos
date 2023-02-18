@@ -78,13 +78,13 @@ int trade(){
 					}
 					pMdSpi->ReqUserLogin();
 					WaitForSingleObject(xinhao, INFINITE);
-					pTdSpi->ReqQryInstrument("", "");//²éÑ¯ºÏÔ¼
+					pTdSpi->ReqQryInstrument("", "");//ï¿½ï¿½Ñ¯ï¿½ï¿½Ô¼
 					WaitForSingleObject(xinhao, INFINITE);
-					pMdSpi->SubscribeMarketData(mgr::Config::Get()->get("instruments"));//¶©ÔÄÐÐÇé
+					pMdSpi->SubscribeMarketData(mgr::Config::Get()->get("instruments"));//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 					// set false
 					is_new_session = false;
 				}
-				mgr::DataManager::Get()->reset(); // Çå³ýÖ®Ç°µÄÊý¾Ý
+				mgr::DataManager::Get()->reset(); // ï¿½ï¿½ï¿½Ö®Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				util::Logger::update_rotation_time(); // rolling log file
 				std::this_thread::sleep_for(std::chrono::seconds(5));
 			}
@@ -134,17 +134,19 @@ int backtest(){
 
 int main(int argc, char *argv[]) {
 	// logger init
-	if (!util::Logger::init("output/logs", "ogre", 4*3600)) {
+	if (!util::Logger::init("output/logs", "chaos", 4*3600)) {
 		std::cerr << "init logger failed!" << std::endl;
 		return -1;
+	}else{
+		log_info << "logger init succeeded!!!" << std::endl;
 	}
 	// config init
-	if (!mgr::Config::Get()->init("config/ogre.ini")) {
-		log_error << "load config/ogre.ini failed";
+	if (!mgr::Config::Get()->init("config/chaos.ini")) {
+		log_error << "load config/chaos.ini failed";
 		return -2;
 	}
 	else {
-		log_info << "load config/ogre.ini succeeded!";
+		log_info << "load config/chaos.ini succeeded!";
 	}
 	std::string mode = mgr::Config::Get()->get("mode");
 	if (mode == "trade")

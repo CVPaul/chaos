@@ -10,5 +10,5 @@ export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib64:$LIBRARY_PATH
 cd build && cmake .. && make
 cd ..
 # run
-./ogre
+./chaos
 #sudo mknod mem -m666 c 1 1

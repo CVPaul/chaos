@@ -140,7 +140,7 @@ int main() {
 	cout << "start parsing..." << endl;
 	std::list<dat::TickData> ticks;
 	io::log2bin(
-		"D:\\WorkSpace\\quant\\data\\output\\logs\\ogre.20211221.log",
-		"D:\\WorkSpace\\quant\\data\\output\\logs\\ogre.20211221.bin");
+		"D:\\WorkSpace\\quant\\data\\output\\logs\\chaos.20211221.log",
+		"D:\\WorkSpace\\quant\\data\\output\\logs\\chaos.20211221.bin");
 	return 0;
 }

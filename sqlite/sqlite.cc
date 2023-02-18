@@ -127,7 +127,7 @@ SqliteRsp* Sqlite::execute(const char* sql, ...) {
 	va_start(args, sql);
 	vsprintf_s(_buffer, _buf_sz, sql, args);
 	va_end(args);
-	/* vsprintf ÎÛÈ¾ÁËhead£¬ÎÞ·¨delete
+	/* vsprintf ï¿½ï¿½È¾ï¿½ï¿½headï¿½ï¿½ï¿½Þ·ï¿½delete
 	if (sql_sz > _buf_sz) {
 		int old_buf_sz = _buf_sz;
 		std::cerr << "[warning]sqlite buffer size(" << old_buf_sz
