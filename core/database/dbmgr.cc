@@ -1,4 +1,5 @@
 #include "dbmgr.h"
+#include "tables.h"
 #include "util/logging.h"
 
 namespace mgr {
@@ -30,11 +31,19 @@ namespace mgr {
 
 	bool DBManager::RegisterSqlite(
 		const std::string& name, const std::string& path) {
+		// the function body
+		if (_sqlites.find(name) != _sqlites.end())
+			return true;
 		Sqlite* p = new Sqlite();
 		if (p == nullptr) {
 			return false;
 		}
-		p->connect(path);
+		if(!p->connect(path)){
+			log_fatal << "connect orderbook database for " << name;
+			delete p;
+			return false;
+		}
+		p->execute(ORDER_TABLE_CREATE);
 		_sqlites[name] = p;
 		return true;
 	}

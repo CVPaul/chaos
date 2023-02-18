@@ -22,26 +22,31 @@ ctp::CTdSpi::CTdSpi(CThostFtdcTraderApi* pUserApi, ctp::BrokerInfo* pBroker)
 	p_broker = pBroker;
 	had_logged_in = false;
 	had_connected = false;
+	// register a database for this trade client
+	mgr::DBManager::Get()->RegisterSqlite(
+		pBroker->investor_id,
+		"orderbooks/" + pBroker->investor_id + ".db");
 	// trade worker
-	_worker = std::thread([this]() {
-		auto sqlite = mgr::DBManager::Get()->GetSqlite("simnow");
-	auto rsp = std::unique_ptr<SqliteRsp>(sqlite->execute(
-		"SELECT id,instrument,exchange_id,(origin_vol - traded_vol) AS vol,"
-		"direction,status,update_time FROME orders WHERE vol > 0"));
-	for (int i = 0; i < rsp->data.size(); i++) { // re insert the failed orders
-		if (rsp->data[i][5] == "1") {
-			std::string instrument = rsp->data[i][1];
-			double price = mgr::DataManager::Get()->get(instrument)->price;
-			this->ReqOrderInsert(
-				rsp->data[i][1], true, price,
-				std::atoi(rsp->data[i][3].c_str()),
-				static_cast<ord::Direction>(std::atoi(rsp->data[i][4].c_str())));
-			std::unique_ptr<SqliteRsp>(
+	_worker = std::thread([this, pBroker]() {
+		// 长连接
+		auto sqlite = mgr::DBManager::Get()->GetSqlite(pBroker->investor_id);
+		auto rsp = sqlite->execute(
+			"SELECT id,instrument,exchange_id,(origin_vol - traded_vol) AS vol,"
+			"direction,status,update_time FROM orders WHERE vol > 0");
+		for (int i = 0; i < rsp->data.size(); i++) { // re insert the failed orders
+			if (rsp->data[i][5] == "1") {
+				std::string instrument = rsp->data[i][1];
+				double price = mgr::DataManager::Get()->get(instrument)->price;
+				this->ReqOrderInsert(
+					rsp->data[i][1], true, price,
+					std::atoi(rsp->data[i][3].c_str()),
+					static_cast<ord::Direction>(std::atoi(rsp->data[i][4].c_str())));
 				sqlite->execute("UPATE orders SET status = %d WHERE id = %s",
-					10086, rsp->data[i][1].c_str()));
+						10086, rsp->data[i][1].c_str());
+			}
 		}
 	}
-	});
+	);
 }
 
 ctp::CTdSpi::~CTdSpi() {
@@ -392,7 +397,7 @@ std::string ctp::CTdSpi::ReqOrderInsert(
 		"price, origin_vol) VAUES('%s','%s',%d,%f,%d)",
 		ORDER_TABLE_NAME, instrument_id.c_str(),
 		exchange_id.c_str(), direction, price, volume);
-	std::shared_ptr<SqliteRsp> rsp(sqlite->execute(buffer));
+	auto rsp = sqlite->execute(buffer);
 	int order_id = sqlite->last_insert_rowid();
 	if (rsp->code||order_id == 0) {
 		log_error << "insert order failed with sql:" << buffer
@@ -783,12 +788,12 @@ std::string ctp::CTdSpi::ReqOrderPreInsert(
 		"order_type, price, origin_vol) VAUES('%s','%s',%d,%d,%f,%d)",
 		ORDER_TABLE_NAME, instrument_id.c_str(),
 		exchange_id.c_str(), 1, direction, price, volume);
-	std::shared_ptr<SqliteRsp> rsp(sqlite->execute(buffer));
+	auto rsp = sqlite->execute(buffer);
 	int order_id = sqlite->last_insert_rowid();
 	if (rsp->code || order_id == 0) {
 		log_error << "insert order failed with sql:" << buffer
 			<< ". code:" << rsp->code << ", order_id:" << order_id;
-		return 0;
+		return "";
 	}
 	CThostFtdcInputOrderField a = { 0 };
 	strcpy_s(a.BrokerID, p_broker->broker_id.c_str());
@@ -823,9 +828,9 @@ std::string ctp::CTdSpi::ReqOrderPreInsert(
 void ctp::CTdSpi::ReqOrderAction(const std::string& order_ref){
 	// function body
 	auto sqlite = mgr::DBManager::Get()->GetSqlite("simnow");
-	std::shared_ptr<SqliteRsp> rsp(sqlite->execute(
+	auto rsp = sqlite->execute(
 		"SELECT instrument, exchange_id FROM %s WHERE id=%s",
-		ORDER_TABLE_NAME, order_ref.c_str()));
+		ORDER_TABLE_NAME, order_ref.c_str());
 	if (rsp->code || rsp->data.size() < 1){
 		log_error << "FATAL ERROR: Can not found order with ref:" << order_ref
 			<< ". sql return code:" << rsp->code << " and data size:" << rsp->data.size();
@@ -1418,9 +1423,9 @@ void ctp::CTdSpi::OnRtnOrder(CThostFtdcOrderField *pOrder){
 			status = "8:touched";
 		}
 		auto sqlite = mgr::DBManager::Get()->GetSqlite("simnow");
-		std::shared_ptr<SqliteRsp> rsp(sqlite->execute(
+		auto rsp = sqlite->execute(
 			"UPDATE order SET traded_vol=%d, status=%c WHERE id=%s",
-			pOrder->VolumeTraded, status[0], pOrder->OrderRef));
+			pOrder->VolumeTraded, status[0], pOrder->OrderRef);
 		if (rsp->code) {
 			log_error << "update order failed with code:" << rsp->code
 				<< ", msg:" << rsp->message << ", order_id:" << pOrder->OrderRef;

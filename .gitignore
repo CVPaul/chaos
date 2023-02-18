@@ -16,6 +16,7 @@
 *.con
 *.manifest
 *.db
+*.ini
 
 # strategy
 core/strategy/*

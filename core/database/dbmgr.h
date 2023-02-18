@@ -4,6 +4,7 @@
 #include "sqlite/sqlite.h"
 
 namespace mgr {
+	
 	class DBManager {
 	private:
 		DBManager() {}

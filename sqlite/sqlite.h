@@ -27,7 +27,7 @@ public:
 	Sqlite();
 	~Sqlite();
 public:
-	SqliteRsp* execute(
+	std::shared_ptr<SqliteRsp> execute(
 		const char* sql, ...);
 	int last_insert_rowid();
 	bool reset(int buf_size);

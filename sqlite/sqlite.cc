@@ -11,7 +11,7 @@ SqliteRsp::SqliteRsp()
 }
 
 bool SqliteRsp::reset() {
-	if (message != nullptr) {
+	if (message) {
 		sqlite3_free(message);
 		message = nullptr;
 	}
@@ -32,6 +32,7 @@ void SqliteRsp::append(const std::string&& val) {
 // =====================================================================
 Sqlite::Sqlite()
 	: _buf_sz(0)
+	,_buffer(nullptr)
 	,_conn(nullptr) {
 }
 
@@ -121,7 +122,7 @@ int callback(void* para, int cnt, char** val, char** name) {
 	return 0;
 }
 
-SqliteRsp* Sqlite::execute(const char* sql, ...) {
+std::shared_ptr<SqliteRsp> Sqlite::execute(const char* sql, ...) {
 	SqliteRsp* rsp = new SqliteRsp();
 	va_list args;
 	va_start(args, sql);
@@ -142,14 +143,13 @@ SqliteRsp* Sqlite::execute(const char* sql, ...) {
 		return rsp;
 	}*/
 	rsp->code = sqlite3_exec(
-		_conn, _buffer, callback, rsp, &rsp->message);
+		_conn, _buffer, callback, rsp, &(rsp->message));
 	if (rsp->code != SQLITE_OK) {
 		std::cerr << "execute with sql:" << sql
-			<< " failed with message:"
+			<< " failed with code: " << rsp->code << " and message: "
 			<< rsp->message << std::endl;
-		sqlite3_free(rsp->message);
 	}
-	return rsp;
+	return std::shared_ptr<SqliteRsp>(rsp);
 }
 
 bool Sqlite::commit() {
@@ -158,7 +158,10 @@ bool Sqlite::commit() {
 	if (rsp.code != SQLITE_OK) {
 		std::cerr << "commit failed with message:"
 			<< rsp.message << std::endl;
-		sqlite3_free(rsp.message);
+		if (rsp.message) {
+			sqlite3_free(rsp.message);
+			rsp.message = nullptr;
+		}
 		return false;
 	}
 	return true;

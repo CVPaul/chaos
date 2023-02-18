@@ -1,7 +1,7 @@
 #pragma once
 
 constexpr char ORDER_TABLE_NAME[] = "orders";
-constexpr char ORDER_TABLE[] = \
+constexpr char ORDER_TABLE_CREATE[] = \
 "CREATE TABLE IF NOT EXISTS orders(" \
 "id INTEGER PRIMARY KEY AUTOINCREMENT," \
 "instrument CHAR(16), exchange_id CHAR(8), " \
