@@ -24,7 +24,9 @@ public:
 	inline void append(CThostFtdcInstrumentField* pInstrument) {
 		// no lock needed now
 		instruments[pInstrument->InstrumentID] = pInstrument;
+#ifdef SIMULATE
 		instruments[to_symbol(pInstrument->InstrumentID)] = pInstrument;
+#endif
 	}
 	inline CThostFtdcInstrumentField* get(const std::string& instrument_id) {
 		// no lock needed now

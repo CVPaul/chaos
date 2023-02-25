@@ -47,28 +47,28 @@ int IntervalTrade::update(const dat::TickData& td) {
 		if (marketposition == 0 ) { // buy
 			direction = ord::Direction::BUY;
 			mgr::TraderManager::Get()->trade(
-				spi_name, instrument, false, price, 1, // marketposition - last_position,
+				stg_name, spi_name, instrument, false, price, 1, // marketposition - last_position,
 				direction, ord::TradeType::ORDINARY);
 			marketposition = 1;
 		}
 		else if (marketposition == 1) { // sell
 			direction = ord::Direction::SELL;
 			mgr::TraderManager::Get()->trade(
-				spi_name, instrument, false, price, 1,
+				stg_name, spi_name, instrument, false, price, 1,
 				direction, ord::TradeType::ORDINARY);
 			marketposition = 2;
 		}
 		else if (marketposition == 2) { // sellshort
 			direction = ord::Direction::SELLSHORT;
 			mgr::TraderManager::Get()->trade(
-				spi_name, instrument, false, price, 1,
+				stg_name, spi_name, instrument, false, price, 1,
 				direction, ord::TradeType::ORDINARY);
 			marketposition = 3;
 		}
 		else if (marketposition == 3) { // buytocover
 			direction = ord::Direction::BUYTOCOVER;
 			mgr::TraderManager::Get()->trade(
-				spi_name, instrument, false, price, 1, 
+				stg_name, spi_name, instrument, false, price, 1, 
 				direction, ord::TradeType::ORDINARY);
 			marketposition = 0;
 		}

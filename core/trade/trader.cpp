@@ -30,20 +30,36 @@ ctp::CTdSpi::CTdSpi(CThostFtdcTraderApi* pUserApi, ctp::BrokerInfo* pBroker)
 	_worker = std::thread([this, pBroker]() {
 		// 长连接
 		auto sqlite = mgr::DBManager::Get()->GetSqlite(pBroker->investor_id);
-		auto rsp = sqlite->execute(
-			"SELECT id,instrument,exchange_id,(origin_vol - traded_vol) AS vol,"
-			"direction,status,update_time FROM orders WHERE vol > 0");
-		for (int i = 0; i < rsp->data.size(); i++) { // re insert the failed orders
-			if (rsp->data[i][5] == "1") {
-				std::string instrument = rsp->data[i][1];
-				double price = mgr::DataManager::Get()->get(instrument)->price;
-				this->ReqOrderInsert(
-					rsp->data[i][1], true, price,
-					std::atoi(rsp->data[i][3].c_str()),
-					static_cast<ord::Direction>(std::atoi(rsp->data[i][4].c_str())));
-				sqlite->execute("UPATE orders SET status = %d WHERE id = %s",
-						10086, rsp->data[i][1].c_str());
+		while(1){
+			auto rsp = sqlite->execute(
+				"SELECT id,instrument,exchange_id,(origin_vol - traded_vol) AS vol,"
+				"direction,status, (julianday('now') - julianday(update_time))*86400 "
+				"FROM %s WHERE vol > 0", ORDER_TABLE_NAME);
+			for (int i = 0; i < rsp->data.size(); i++) { // re insert the failed orders
+				if (rsp->data[i][5] == "1") {
+					std::string instrument = rsp->data[i][1];
+					// float price = mgr::DataManager::Get()->get_price(instrument);
+					float price = 4312; // # rb2305
+					std::string orderid = this->ReqOrderInsert(
+						"reinsert",
+						rsp->data[i][1], true, price,
+						std::atoi(rsp->data[i][3].c_str()),
+						static_cast<ord::Direction>(std::atoi(rsp->data[i][4].c_str())));
+					if(!orderid.empty()){ // re insert succeeded!
+						sqlite->execute("UPDATE %s SET next=%s, status = 99 WHERE id = %s",
+								ORDER_TABLE_NAME, orderid.c_str(), rsp->data[i][0].c_str());
+						log_info << "reinsert the unfinished order succeeded, old orderref:" << rsp->data[i][0]
+							<< " and new orderref:" << orderid;
+					}else{
+						log_warning << "reinsert the unfinished order failed, old orderref:" << rsp->data[i][0]
+							<< " and new orderref:" << orderid;
+					}
+				}else if (std::atof(rsp->data[i][6].c_str()) > 5.0){ // unfinished in 5s
+					log_info << "cancel order with orderref:" << rsp->data[i][0];
+					ReqOrderAction(rsp->data[i][0]);
+				}
 			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 	);
@@ -384,33 +400,33 @@ void ctp::CTdSpi::ReqRemoveParkedOrderAction(const std::string& parked_order_act
 
 ///报单录入请求
 std::string ctp::CTdSpi::ReqOrderInsert(
+	const std::string& strategy,
 	const std::string& instrument_id, bool close_yd_pos,
 	float price, int volume, ord::Direction direction){
 	// put to data base first
 	// 条件单由于是服务器代发，所以frontid和sessoinid都是0
 	auto sqlite = mgr::DBManager::Get()->GetSqlite(p_broker->investor_id);
-	char buffer[1024];
 	std::string exchange_id = mgr::InstrumentManager::Get()->get_exhcnage_id(instrument_id);
-	sprintf_s(
-		buffer,
-		"INSERT INTO %s(instrument, exchange_id, direction, "
-		"price, origin_vol) VALUES('%s','%s',%d,%f,%d)",
-		ORDER_TABLE_NAME, instrument_id.c_str(),
+	auto rsp = sqlite->execute(
+		"INSERT INTO %s(strategy, instrument, exchange_id, direction, "
+		"price, origin_vol) VALUES('%s','%s','%s',%d,%f,%d)",
+		ORDER_TABLE_NAME, strategy.c_str(), instrument_id.c_str(),
 		exchange_id.c_str(), direction, price, volume);
-	auto rsp = sqlite->execute(buffer);
 	int order_id = sqlite->last_insert_rowid();
 	if (rsp->code||order_id == 0) {
-		log_error << "insert order failed with sql:" << buffer
-			<< ". code:" << rsp->code << ", order_id:" << order_id;
+		log_error << "insert order failed with sql: " << rsp->sql << ". code: " << rsp->code
+			<< ", message: " << rsp->message << ", order_id:" << order_id;
 		return "";
 	}
 	// function body
 	CThostFtdcInputOrderField ord = { 0 };
 	sprintf_s(ord.OrderRef, "%d", order_id);
-	strcpy_s(ord.ExchangeID, exchange_id.c_str());
+	// strcpy_s(ord.ExchangeID, exchange_id.c_str());
+	// strcpy_s(ord.InstrumentID, instrument_id.c_str());
+	strcpy_s(ord.ExchangeID, "SHFE");
+	strcpy_s(ord.InstrumentID, "rb2305");
 	strcpy_s(ord.BrokerID, p_broker->broker_id.c_str());
 	strcpy_s(ord.InvestorID, p_broker->investor_id.c_str());
-	strcpy_s(ord.InstrumentID, instrument_id.c_str());
 	strcpy_s(ord.UserID, p_broker->investor_id.c_str());
 	ord.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
 	ConvDirection(
@@ -695,8 +711,10 @@ void ctp::CTdSpi::ReqOrderAction_Ordinary(
 	strcpy_s(a.OrderRef, order_ref.c_str());
 	//a.FrontID = front_id;
 	//a.SessionID = session_id;
-	strcpy_s(a.ExchangeID, exchange_id.c_str());
-	strcpy_s(a.InstrumentID, instrument_id.c_str());
+	// strcpy_s(a.ExchangeID, exchange_id.c_str());
+	// strcpy_s(a.InstrumentID, instrument_id.c_str());
+	strcpy_s(a.ExchangeID, "SHFE");
+	strcpy_s(a.InstrumentID, "rb2305");
 	strcpy_s(a.OrderSysID, order_sys_id.c_str());
 	a.ActionFlag = THOST_FTDC_AF_Delete;
 	strcpy_s(a.UserID, p_broker->investor_id.c_str());
@@ -780,18 +798,15 @@ std::string ctp::CTdSpi::ReqOrderPreInsert(
 	float price, int volume, ord::Direction direction){
 	// function body
 	auto sqlite = mgr::DBManager::Get()->GetSqlite(p_broker->investor_id);
-	char buffer[1024];
 	std::string exchange_id = mgr::InstrumentManager::Get()->get_exhcnage_id(instrument_id);
-	sprintf_s(
-		buffer,
+	auto rsp = sqlite->execute(
 		"INSERT INTO %s(instrument, echange_id, direction, "
 		"order_type, price, origin_vol) VAUES('%s','%s',%d,%d,%f,%d)",
 		ORDER_TABLE_NAME, instrument_id.c_str(),
 		exchange_id.c_str(), 1, direction, price, volume);
-	auto rsp = sqlite->execute(buffer);
 	int order_id = sqlite->last_insert_rowid();
 	if (rsp->code || order_id == 0) {
-		log_error << "insert order failed with sql:" << buffer
+		log_error << "insert order failed with sql:" << rsp->sql
 			<< ". code:" << rsp->code << ", order_id:" << order_id;
 		return "";
 	}
@@ -833,17 +848,20 @@ void ctp::CTdSpi::ReqOrderAction(const std::string& order_ref){
 		ORDER_TABLE_NAME, order_ref.c_str());
 	if (rsp->code || rsp->data.size() < 1){
 		log_error << "FATAL ERROR: Can not found order with ref:" << order_ref
+			<< ". sql: " << rsp->sql << ". sql return code: " << rsp->code
 			<< ". sql return code:" << rsp->code << " and data size:" << rsp->data.size();
 		return;
 	}
 	CThostFtdcInputOrderActionField a = { 0 };
 	strcpy_s(a.BrokerID, p_broker->broker_id.c_str());
 	strcpy_s(a.InvestorID, p_broker->investor_id.c_str());
-	strcpy_s(a.InstrumentID, rsp->data[0][0].c_str());
 	strcpy_s(a.UserID, p_broker->investor_id.c_str());
 	strcpy_s(a.OrderRef, order_ref.c_str());
 	// strcpy_s(a.OrderSysID, order_sys_id.c_str());
-	strcpy_s(a.ExchangeID, rsp->data[0][1].c_str());
+	// strcpy_s(a.InstrumentID, rsp->data[0][0].c_str());
+	// strcpy_s(a.ExchangeID, rsp->data[0][1].c_str());
+	strcpy_s(a.ExchangeID, "SHFE");
+	strcpy_s(a.InstrumentID, "rb2305");
 	a.ActionFlag = THOST_FTDC_AF_Delete;
 	int code = m_pUserApi->ReqOrderAction(&a, request_id++);
 	if (code) {
@@ -1349,12 +1367,12 @@ void ctp::CTdSpi::ReqQueryCFMMCTradingAccountToken()
 ///报单操作错误回报
 void ctp::CTdSpi::OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction, CThostFtdcRspInfoField *pRspInfo)
 {
-	if (pOrderAction && strcmp(pOrderAction->InvestorID, p_broker->investor_id.c_str()) != 0)
-	{
+	if (pOrderAction && pOrderAction->InvestorID != p_broker->investor_id){
+		log_warning << "diffirent investor id, expect: " << p_broker->investor_id
+			<< ", but got: " << pOrderAction->InvestorID;
 		return;
-	}
-	else
-	{
+	} else {
+		log_error << "cancel order failed! orderref: " << pOrderAction->OrderRef;
 		//CTraderSpi::OnErrRtnOrderAction(pOrderAction,pRspInfo);
 		SetEvent(g_hEvent);
 	}
@@ -1364,31 +1382,53 @@ void ctp::CTdSpi::OnErrRtnOrderAction(CThostFtdcOrderActionField *pOrderAction, 
 void ctp::CTdSpi::OnRspOrderInsert(
 	CThostFtdcInputOrderField *pInputOrder,
 	CThostFtdcRspInfoField *pRspInfo, int request_id, bool bIsLast){
-	if (pInputOrder && strcmp(pInputOrder->InvestorID, p_broker->investor_id.c_str()) != 0){
+	if (pInputOrder && pInputOrder->InvestorID != p_broker->investor_id){
+		log_warning << "investor id do not match, expect:" << p_broker->investor_id
+			<< ", but got:" << pInputOrder->InvestorID;
 		return;
 	}
-	else{
+	if (pRspInfo && pRspInfo->ErrorID != 0){
+		log_error << "InsertOrder Failed wiht code: " << pRspInfo->ErrorID
+			<< ", message: " << pRspInfo->ErrorMsg <<  ", instrument: " << pInputOrder->InstrumentID 
+			<< ", InvestorID: " << pInputOrder->InvestorID << ", OrderRef: " << pInputOrder->OrderRef; 
 		//CTraderSpi::OnRspOrderInsert(pInputOrder,pRspInfo,request_id,bIsLast);
 	}
 }
 
 ///报单录入错误回报
-void ctp::CTdSpi::OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo)
-{
-	if (pInputOrder && strcmp(pInputOrder->InvestorID, p_broker->investor_id.c_str()) != 0)
-	{
+void ctp::CTdSpi::OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo){
+	if (pInputOrder && strcmp(pInputOrder->InvestorID, p_broker->investor_id.c_str()) != 0){
 		return;
 	}
-	else
-	{
+	else{
 		//CTraderSpi::OnErrRtnOrderInsert(pInputOrder, pRspInfo);
 		SetEvent(g_hEvent);
 	}
 }
 
+void ctp::CTdSpi::OnRspOrderAction(CThostFtdcInputOrderActionField *pInputOrderAction, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+	if (pInputOrderAction && pInputOrderAction->InvestorID != p_broker->investor_id){
+		log_warning << "investor id do not match, expect:" << p_broker->investor_id
+			<< ", but got:" << pInputOrderAction->InvestorID;
+		return;
+	}
+	if (pRspInfo && pRspInfo->ErrorID !=0){
+		if (pRspInfo->ErrorID == 1010){ // order not exists, go cancel succeeded status
+		    auto sqlite = mgr::DBManager::Get()->GetSqlite(p_broker->investor_id);
+			sqlite->execute("UPDATE %s SET status = 1 WHERE id = %s",
+					ORDER_TABLE_NAME, pInputOrderAction->OrderRef);
+		}else{
+			log_error << "cancel order failed with code:" << pRspInfo->ErrorID << ",message:" << pRspInfo->ErrorMsg;
+		}
+	}
+
+};
+
 ///报单通知
 void ctp::CTdSpi::OnRtnOrder(CThostFtdcOrderField *pOrder){
-	if (pOrder && strcmp(pOrder->InvestorID, p_broker->investor_id.c_str()) != 0){
+	if (pOrder && pOrder->InvestorID != p_broker->investor_id){
+		log_warning << "investor id do not match, expect:" << p_broker->investor_id
+			<< ", but got:" << pOrder->InvestorID;
 		return;
 	}
 	else{
@@ -1424,16 +1464,16 @@ void ctp::CTdSpi::OnRtnOrder(CThostFtdcOrderField *pOrder){
 		}
 		auto sqlite = mgr::DBManager::Get()->GetSqlite(p_broker->investor_id);
 		auto rsp = sqlite->execute(
-			"UPDATE order SET traded_vol=%d, status=%c WHERE id=%s",
-			pOrder->VolumeTraded, status[0], pOrder->OrderRef);
+			"UPDATE %s SET traded_vol=%d, status=%c WHERE id=%s",
+			ORDER_TABLE_NAME, pOrder->VolumeTraded, status[0], pOrder->OrderRef);
 		if (rsp->code) {
-			log_error << "update order failed with code:" << rsp->code
+			log_error << "update order failed with code:" << rsp->code << ", sql: " << rsp->sql
 				<< ", msg:" << rsp->message << ", order_id:" << pOrder->OrderRef;
 		}
 		ord::Direction dir;
 		log_info << "PUBLIC_ORDER_TRADED|investor_id=" << p_broker->investor_id
-			<< "|order_status=" << pOrder->OrderStatus << status
-			<< "|instrument_id=" << pOrder->InstrumentID << "|instrument_id=" << pOrder->VolumeTraded
+			<< "|order_status=" << pOrder->OrderStatus << "|status=" << status
+			<< "|instrument_id=" << pOrder->InstrumentID << "|trade_volume=" << pOrder->VolumeTraded
 			<< "|account_id=" << pOrder->AccountID << "|order_ref=" << pOrder->OrderRef
 			<< "|direction=" << GetDirection(dir, pOrder->Direction, pOrder->CombOffsetFlag[0]);
 	}
@@ -1443,7 +1483,7 @@ void ctp::CTdSpi::OnRtnOrder(CThostFtdcOrderField *pOrder){
 void ctp::CTdSpi::OnRspRemoveParkedOrder(
 	CThostFtdcRemoveParkedOrderField *pRemoveParkedOrder, 
 	CThostFtdcRspInfoField *pRspInfo, int request_id, bool bIsLast){
-	if (pRemoveParkedOrder && strcmp(pRemoveParkedOrder->InvestorID, p_broker->investor_id.c_str()) != 0){
+	if (pRemoveParkedOrder && pRemoveParkedOrder->InvestorID != p_broker->investor_id){
 		return;
 	}
 	else{
@@ -1456,7 +1496,7 @@ void ctp::CTdSpi::OnRspRemoveParkedOrder(
 void ctp::CTdSpi::OnRspRemoveParkedOrderAction(
 	CThostFtdcRemoveParkedOrderActionField *pRemoveParkedOrderAction, 
 	CThostFtdcRspInfoField *pRspInfo, int request_id, bool bIsLast){
-	if (pRemoveParkedOrderAction && strcmp(pRemoveParkedOrderAction->InvestorID, p_broker->investor_id.c_str()) != 0)
+	if (pRemoveParkedOrderAction && pRemoveParkedOrderAction->InvestorID != p_broker->investor_id)
 	{
 		return;
 	}
@@ -1470,7 +1510,7 @@ void ctp::CTdSpi::OnRspRemoveParkedOrderAction(
 void ctp::CTdSpi::OnRspParkedOrderInsert(
 	CThostFtdcParkedOrderField *pParkedOrder,
 	CThostFtdcRspInfoField *pRspInfo, int request_id, bool bIsLast){
-	if (pParkedOrder && strcmp(pParkedOrder->InvestorID, p_broker->investor_id.c_str()) != 0){
+	if (pParkedOrder && pParkedOrder->InvestorID != p_broker->investor_id){
 		return;
 	}
 	else{
@@ -1988,6 +2028,7 @@ namespace mgr {
 	}
 
 	std::string TraderManager::trade(
+		const std::string& strategy,
 		const std::string& spi_name, const std::string& instrument,
 		bool close_yd_pos, double price, int volume, ord::Direction direction,
 		ord::TradeType trade_type) {
@@ -1995,7 +2036,7 @@ namespace mgr {
 			// ordinary order
 		case ord::TradeType::ORDINARY:
 			return _traders[spi_name]->ReqOrderInsert(
-				instrument, close_yd_pos, price, volume, direction);
+				strategy, instrument, close_yd_pos, price, volume, direction);
 			// pre-insert order
 		case ord::TradeType::CONDITION:
 			return _traders[spi_name]->ReqOrderPreInsert(

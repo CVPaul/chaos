@@ -17,10 +17,10 @@ public:
 public:
 	TickData();
 	TickData(const std::string& content);
-	TickData(CThostFtdcDepthMarketDataField* p);
+	TickData(const CThostFtdcDepthMarketDataField* p);
 
 	void reset(const std::string& content);
-	void reset(CThostFtdcDepthMarketDataField* p);
+	void reset(const CThostFtdcDepthMarketDataField* p);
 
 };
 

@@ -2,6 +2,7 @@
 #include "time.h"
 #include "structs.h"
 #include "util/common.h"
+#include <iostream>
 
 namespace dat {
 // data struct name space
@@ -123,16 +124,17 @@ void TickData::reset(const std::string& content) {
 	timestamp = util::to_timestamp(trading_day, update_time, update_millisec);
 }
 
-TickData::TickData(CThostFtdcDepthMarketDataField* p) {
+TickData::TickData(const CThostFtdcDepthMarketDataField* p) {
 	reset(p);
 }
 
-void TickData::reset(CThostFtdcDepthMarketDataField* p){
+void TickData::reset(const CThostFtdcDepthMarketDataField* p){
 	price = p->LastPrice;
+	double eps = abs(p->LastPrice - price);
 	/* ================================================================================
-	¼¸µãÐèÒª×¢ÒâµÄ£º
-		1¡¢ActionDayºÍTradingDayµÄº¬Òå¸÷¸öÈ¯ÉÌÓÐ²îÒì£ºhttps://zhuanlan.zhihu.com/p/33553653
-		2¡¢ÆäÖÐTradingDayµÄº¬ÒåÏà¶ÔÃ÷È·ËùÒÔÕâÀïÑ¡TradingDay
+	ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òª×¢ï¿½ï¿½Ä£ï¿½
+		1ï¿½ï¿½ActionDayï¿½ï¿½TradingDayï¿½Äºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¯ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ì£ºhttps://zhuanlan.zhihu.com/p/33553653
+		2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½TradingDayï¿½Äºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡TradingDay
 	================================================================================== */
 	trading_day = p->TradingDay;
 	update_millisec = p->UpdateMillisec;

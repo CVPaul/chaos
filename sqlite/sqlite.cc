@@ -30,21 +30,9 @@ void SqliteRsp::append(const std::string&& val) {
 }
 
 // =====================================================================
-Sqlite::Sqlite()
-	: _buf_sz(0)
-	,_buffer(nullptr)
-	,_conn(nullptr) {
-}
+Sqlite::Sqlite():_conn(nullptr) {}
 
-Sqlite::~Sqlite() {
-	if (_conn)
-		close();
-	if (_buffer) {
-		delete[]_buffer;
-		_buffer = nullptr;
-		_buf_sz = 0;
-	}
-}
+Sqlite::~Sqlite() { if (_conn) close(); }
 
 int Sqlite::last_insert_rowid() {
 	return sqlite3_last_insert_rowid(_conn);
@@ -60,30 +48,6 @@ bool Sqlite::close() {
 		_conn = nullptr;
 	}
 	db = "";
-	if (_buffer) {
-		delete[]_buffer;
-		_buffer = nullptr;
-		_buf_sz = 0;
-	}
-	return true;
-}
-
-bool Sqlite::reset(int buf_sz) {
-	if (buf_sz == _buf_sz)
-		return true;
-	// release
-	if (_buffer) {
-		delete[]_buffer;
-		_buffer = nullptr;
-		_buf_sz = 0;
-	}
-	// allocate
-	_buffer = new char[DEFAULT_SQL_BUFFER_SIZE];
-	if (_buffer == nullptr) {
-		std::cerr << "malloc buffer failed with size=1024!";
-		return false;
-	}
-	_buf_sz = buf_sz;
 	return true;
 }
 
@@ -92,12 +56,6 @@ bool Sqlite::connect(const std::string& db, float timeout) {
 		std::cerr << "last connection is not closed, please close it first!" << std::endl;
 		return false;
 	}
-	_buffer = new char[DEFAULT_SQL_BUFFER_SIZE];
-	if (_buffer == nullptr) {
-		std::cerr << "malloc buffer failed with size=1024!";
-		return false;
-	}
-	_buf_sz = DEFAULT_SQL_BUFFER_SIZE;
 	int code = sqlite3_open(db.c_str(), &_conn);
 	if (code != SQLITE_OK) {
 		std::cerr << "connect to " << db << " failed with code:"
@@ -124,28 +82,17 @@ int callback(void* para, int cnt, char** val, char** name) {
 
 std::shared_ptr<SqliteRsp> Sqlite::execute(const char* sql, ...) {
 	SqliteRsp* rsp = new SqliteRsp();
+	const size_t bufsz = 512;
+	char buffer[bufsz];
 	va_list args;
 	va_start(args, sql);
-	vsprintf_s(_buffer, _buf_sz, sql, args);
+	vsprintf_s(buffer, bufsz, sql, args);
 	va_end(args);
-	/* vsprintf ��Ⱦ��head���޷�delete
-	if (sql_sz > _buf_sz) {
-		int old_buf_sz = _buf_sz;
-		std::cerr << "[warning]sqlite buffer size(" << old_buf_sz
-			<< ") is smaller than sql query length(" << sql_sz << ")." 
-			<< "sqlite will auto extand buffer with local scope to "
-			<< sql_sz << " and shrink to origin size:" << old_buf_sz 
-			<< " after successfully execute this command." << std::endl;
-		reset(sql_sz + 1);
-		delete rsp;
-		rsp = execute(sql);
-		reset(old_buf_sz);
-		return rsp;
-	}*/
+	rsp->sql = buffer;
 	rsp->code = sqlite3_exec(
-		_conn, _buffer, callback, rsp, &(rsp->message));
+		_conn, rsp->sql.c_str(), callback, rsp, &(rsp->message));
 	if (rsp->code != SQLITE_OK) {
-		std::cerr << "execute with sql:" << sql
+		std::cerr << "execute with sql:" << rsp->sql
 			<< " failed with code: " << rsp->code << " and message: "
 			<< rsp->message << std::endl;
 	}

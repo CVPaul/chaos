@@ -24,6 +24,8 @@ LINK_LIBRARIES(
     thosttraderapi_se
 )
 
+ADD_DEFINITIONS(-DSIMULATE)
+
 # include current dir
 INCLUDE_DIRECTORIES(
     .

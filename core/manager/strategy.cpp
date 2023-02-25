@@ -52,17 +52,9 @@ int StrategyManager::add(
 }
 
 int StrategyManager::update(const dat::TickData& td) {
-	/*
-	auto iter = strategies.find(td.instrument_id);
-	if (iter == strategies.end())
-		return 0; // nothing
-	for (auto&& s : iter->second) {
-		s->update(td);
-	}*/
-	if(td.price < 0){
-		log_warning << "Invalid data:";
-		return 1;
-
+#ifdef SIMULATE
+	if(td.price < 0 || td.price > 1e8){
+		log_warning << "Invalid data:"; return 1;
 	}
 	auto symbol = td.instrument_id.substr(0, 2);
 	if (symbol == "rb"){
@@ -72,6 +64,14 @@ int StrategyManager::update(const dat::TickData& td) {
 			}
 		}
 	}
+#else
+	auto iter = strategies.find(td.instrument_id);
+	if (iter == strategies.end())
+		return 0; // nothing
+	for (auto&& s : iter->second) {
+		s->update(td);
+	}
+#endif // Simulate
 	return 0;
 }
 }

@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "charconv": "cpp",
+        "format": "cpp",
+        "regex": "cpp",
+        "sstream": "cpp",
+        "xhash": "cpp",
+        "xlocnum": "cpp",
+        "xmemory": "cpp"
+    }
+}

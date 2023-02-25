@@ -149,6 +149,7 @@ namespace ctp {
 		
 		///报单录入请求
 		std::string ReqOrderInsert(
+			const std::string& strategy,
 			const std::string& instrument_id, bool close_yd_pos,
 			float price, int volume, ord::Direction direction);
 
@@ -363,7 +364,11 @@ namespace ctp {
 		///报单录入错误回报
 		virtual void OnErrRtnOrderInsert(CThostFtdcInputOrderField *pInputOrder, CThostFtdcRspInfoField *pRspInfo);
 		
+		/// 撤单通知
 
+		virtual void OnRspOrderAction(
+			CThostFtdcInputOrderActionField *pInputOrderAction,
+			CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
 		///报单通知
 		virtual void OnRtnOrder(CThostFtdcOrderField *pOrder);
 		
@@ -508,6 +513,7 @@ namespace mgr {
 	public:
 
 		std::string trade(
+			const std::string& strategy,
 			const std::string& spi_name, const std::string& instrument,
 			bool close_yd_pos, double price, int volume,
 			ord::Direction direction, ord::TradeType);

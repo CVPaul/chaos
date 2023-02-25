@@ -134,12 +134,17 @@ void ctp::CMdSpi::OnRspSubMarketData(
 ///深度行情通知
 void ctp::CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData){
 	if (pDepthMarketData){
+#ifdef SIMULATE
+		if (pDepthMarketData->LastPrice < 0 or pDepthMarketData->LastPrice > 1e8){
+			log_error << "origin data price is invalid:" << pDepthMarketData->InstrumentID;
+		}
 		if(pDepthMarketData->UpdateTime[0] == '\0'){
-			log_warning << "Invalid data got update_time is '\0', instrument_id:" << pDepthMarketData->InstrumentID;
+			log_warning << "Invalid data got update_time is '\\0', instrument_id:" << pDepthMarketData->InstrumentID;
 			strcpy_s(pDepthMarketData->UpdateTime, dt::now().to_string("%H:%M:%S").c_str());
 		}
-		dat::TickData* ptd = mgr::DataManager::Get()->update(pDepthMarketData);
-		mgr::StrategyManager::Get()->update(*ptd);
+#endif // simulate
+		dat::TickData td = mgr::DataManager::Get()->update(pDepthMarketData);
+		mgr::StrategyManager::Get()->update(td);
 		if (need_download){
 			log_info << "PUBLIC_MARKET_DATA|instrument_id=" << pDepthMarketData->InstrumentID
 				<< "|ActionDay=" << pDepthMarketData->ActionDay

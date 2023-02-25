@@ -1,3 +1,4 @@
+#include <iostream>
 #include "manager/data.h"
 
 namespace mgr {
@@ -14,28 +15,24 @@ namespace mgr {
 		reset();
 	}
 
-	dat::TickData* DataManager::update(CThostFtdcDepthMarketDataField* p) {
-		dat::TickData* ptd(nullptr);
+	dat::TickData DataManager::update(const CThostFtdcDepthMarketDataField *  p) {
+		WriteLock wlock(m_lock);
+		dat::TickData* ptd = nullptr;
 		auto it = _data.find(p->InstrumentID);
 		if(it != _data.end()){
 			ptd = it->second;
 			ptd->reset(p);
 		}
-		else {
+		else{
 			ptd = new dat::TickData(p);
 			_data[p->InstrumentID] = ptd;
 		}
-		return ptd; 
+		return *ptd; 
 	}
 
-	dat::TickData* DataManager::get(const std::string& instrument_id) {
-		auto it = _data.find(instrument_id);
-		if (it != _data.end()) {
-			return it->second;
-		}
-		else {
-			return nullptr;
-		}
+	float DataManager::get_price(const std::string& instrument_id) {
+		ReadLock rlock(m_lock);
+		return _data[instrument_id]->price;
 	}
 
 	DataManager* DataManager::Get() {

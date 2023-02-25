@@ -54,13 +54,16 @@ int trade(){
 		bool is_new_session = true;
 		auto pTdSpi = mgr::TraderManager::Get()->get(brokers[0]);
 		auto pMdSpi = mgr::TraderManager::Get()->get_mdspi();
-		bool is_7x24 = brokers[0].find("7x24") != std::string::npos;
 		while (1) {
 			std::time_t t = std::time(0);
 			std::tm* ptm = std::localtime(&t);
 			int HMS = ptm->tm_hour * 10000 + ptm->tm_min * 100 + ptm->tm_sec;
-			if (is_7x24 || (HMS >= 85000 && HMS < 153000) ||
+#ifdef SIMULATE
+			if(1){
+#else
+			if ((HMS >= 85000 && HMS < 153000) ||
 				(HMS >= 205000 && HMS < 240000) || (HMS >= 0 && HMS < 30000)) {
+#endif // Simulate
 				if (is_new_session) {
 					// login with trader
 					if (!pTdSpi->had_connected) { 
