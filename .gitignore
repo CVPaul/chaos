@@ -15,6 +15,7 @@
 *.dll
 *.con
 *.manifest
+*.db-journal
 *.db
 *.ini
 
