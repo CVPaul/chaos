@@ -54,8 +54,8 @@ ctp::CTdSpi::CTdSpi(CThostFtdcTraderApi* pUserApi, ctp::BrokerInfo* pBroker)
 						log_warning << "reinsert the unfinished order failed, old orderref:" << rsp->data[i][0]
 							<< " and new orderref:" << orderid;
 					}
-				}else if (std::atof(rsp->data[i][6].c_str()) > 5.0){ // unfinished in 5s
-					log_info << "cancel order with orderref:" << rsp->data[i][0];
+				}else if (std::atof(rsp->data[i][6].c_str()) > 300.0){ // unfinished in 5min
+					log_info << "cancel order with orderref:" << rsp->data[i][0] << ", time duration:" << rsp->data[i][6];
 					ReqOrderAction(rsp->data[i][0]);
 				}
 			}

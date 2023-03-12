@@ -18,6 +18,7 @@ INCLUDE_DIRECTORIES(
 )
 
 # 将源代码添加到此项目的可执行文件。
+ADD_LIBRARY(finio SHARED STATIC "reader.hpp" "writter.hpp")
 ADD_EXECUTABLE(lightio "lightio.cpp" "lightio.h" "tick.pb.h" "tick.pb.cc")
 
 # TODO: 如有需要，请添加测试并安装目标。

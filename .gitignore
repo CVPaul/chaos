@@ -18,6 +18,10 @@
 *.db-journal
 *.db
 *.ini
+*.bin
+
+# vscode
+.vscode
 
 # strategy
 core/strategy/*

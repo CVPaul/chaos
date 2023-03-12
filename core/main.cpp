@@ -11,6 +11,7 @@
 #include "manager/data.h"
 #include "quote/marketdata.h"
 #include "manager/strategy.h"
+#include "datetime/datetime.h"
 
 #include "backtest/engine.h"
 
@@ -39,6 +40,11 @@ int trade(){
 			pUserMdApi->RegisterFront(const_cast<char*>(pBroker->md_front.c_str()));
 			mgr::TraderManager::Get()->add(pMdSpi);
 			is_first_broker = false;
+			if (mgr::Config::Get()->get("download_data") == "true"){
+				// create the asyn task to download data
+				mgr::DataManager::Get()->add_writter(
+					"futures", dt::now().to_string("%Y%m%d"));
+			}
 		}
 		// add trader
 		mgr::TraderManager::Get()->add(n, pTdSpi);
@@ -87,7 +93,7 @@ int trade(){
 					// set false
 					is_new_session = false;
 				}
-				mgr::DataManager::Get()->reset(); // ���֮ǰ������
+				// mgr::DataManager::Get()->reset(); // ���֮ǰ������
 				util::Logger::update_rotation_time(); // rolling log file
 				std::this_thread::sleep_for(std::chrono::seconds(5));
 			}
@@ -96,6 +102,11 @@ int trade(){
 					ptm->tm_hour = 8;
 					ptm->tm_min = 50;
 					ptm->tm_sec = 0;
+					if (mgr::Config::Get()->get("download_data") == "true"){
+						// create the async task to download data
+						mgr::DataManager::Get()->add_writter(
+							"futures", dt::now().to_string("%Y%m%d"));
+					}
 				}
 				else{
 					ptm->tm_hour = 20;

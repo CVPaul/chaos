@@ -145,6 +145,7 @@ void ctp::CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 #endif // simulate
 		dat::TickData td = mgr::DataManager::Get()->update(pDepthMarketData);
 		mgr::StrategyManager::Get()->update(td);
+		/*
 		if (need_download){
 			log_info << "PUBLIC_MARKET_DATA|instrument_id=" << pDepthMarketData->InstrumentID
 				<< "|ActionDay=" << pDepthMarketData->ActionDay
@@ -190,7 +191,7 @@ void ctp::CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 				<< "|UpdateTime=" << pDepthMarketData->UpdateTime
 				<< "|UpperLimitPrice=" << pDepthMarketData->UpperLimitPrice
 				<< "|Volume=" << pDepthMarketData->Volume;
-		}
+		}*/
 	}
 }
 

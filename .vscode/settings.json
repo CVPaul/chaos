@@ -6,6 +6,13 @@
         "sstream": "cpp",
         "xhash": "cpp",
         "xlocnum": "cpp",
-        "xmemory": "cpp"
+        "xmemory": "cpp",
+        "any": "cpp",
+        "chrono": "cpp",
+        "filesystem": "cpp",
+        "fstream": "cpp",
+        "memory": "cpp",
+        "optional": "cpp",
+        "xlocbuf": "cpp"
     }
 }
